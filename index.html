@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wathe SAV</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E5A6B'/%3E%3Cpath d='M9 12l7-4 7 4v8l-7 4-7-4z' fill='none' stroke='white' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,600..800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#EEF1F4;--surface:#fff;--ink:#14202B;--muted:#5A6878;--line:#DCE1E7;
+    --violet:#0E5A6B;--violet-2:#12707F;--violet-soft:#DCEEF1;
+    --green:#2A7048;--green-soft:#DDF1E4;--red:#B4371A;--amber:#9A6212;--amber-soft:#FBEFD9;--slate-soft:#E7EBEF;
+    --shadow:0 1px 2px rgba(14,32,48,.05),0 4px 16px rgba(14,32,48,.05);
+    --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;--f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}html,body{margin:0}
+  body{font:14px/1.45 var(--f-body);color:var(--ink);background:var(--bg);min-height:100vh}
+  button,input,select,textarea{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+  .hide{display:none!important}
+  .top{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 20px 10px;display:flex;align-items:center;gap:14px}
+  .brand{display:flex;align-items:center;gap:10px;white-space:nowrap;font-family:var(--f-display);font-stretch:80%;font-weight:800;font-size:20px;letter-spacing:.02em;text-transform:uppercase}
+  .brand svg{width:28px;height:28px}
+  .brand small{font-family:var(--f-body);font-stretch:100%;font-weight:600;font-size:12px;letter-spacing:0;text-transform:none;color:#9FB3C2}
+  .top .spacer{flex:1}
+  .who{font-size:12px;color:#B8C6D1}
+  .top .btn{background:transparent;border-color:#34495A;color:#fff}.top .btn:hover{border-color:#8FA4B3}
+  .wrap{max-width:1440px;margin:0 auto;padding:24px 20px 60px}
+  h1{font-family:var(--f-display);font-stretch:82%;font-weight:800;font-size:28px;margin:0 0 4px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 13px;font-weight:600;font-size:13px;cursor:pointer;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:#9FB3C2}.btn[disabled]{opacity:.55;cursor:wait}
+  .btn.v{background:var(--violet);border-color:var(--violet);color:#fff}.btn.v:hover{background:var(--violet-2)}
+  .btn.g{background:var(--ink);border-color:var(--ink);color:#fff}.btn.g:hover{background:#26384A}
+  .btn.r{background:#FBE9E4;border-color:#F3C9BE;color:var(--red)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .kpi .v{font-family:var(--f-display);font-stretch:85%;font-weight:800;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+  .kpi .l{color:var(--muted);font-size:12px;margin-top:2px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h3{margin:0 0 14px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+  .tablecard{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .tmeta{padding:11px 16px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1080px}
+  th{text-align:left;color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:#F7F9FA}
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}
+  .muted{color:var(--muted)}.sku{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+  .empty{padding:36px;text-align:center;color:var(--muted)}
+  .spacer{flex:1}
+  .countpill{background:var(--slate-soft);color:#374151;border-radius:20px;padding:2px 9px;font-weight:700;font-size:11px}.countpill.has{background:var(--green-soft);color:var(--green)}
+  .fld{display:flex;flex-direction:column;gap:5px;min-width:0}.fld.full{grid-column:1/-1}
+  .fld label{font-size:12px;color:var(--muted);font-weight:600}
+  .fld input,.fld select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;background:#fff;min-width:0;width:100%}
+  .seclbl{grid-column:1/-1;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:4px;padding-top:12px;border-top:1px solid var(--line)}
+  .ov{position:fixed;inset:0;background:rgba(10,20,30,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.ov.show{display:flex}
+  .modal{background:#fff;border-radius:14px;width:560px;max-width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .mh{padding:16px 22px;border-bottom:1px solid var(--line);font-family:var(--f-display);font-stretch:85%;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:2}
+  .mh .x{cursor:pointer;color:var(--muted);font-size:22px;border:0;background:0}
+  .mb{padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .mf{padding:12px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center;position:sticky;bottom:0;background:#fff;flex-wrap:wrap}
+  .sw{position:relative;display:inline-block;width:46px;height:26px;flex:none}.sw input{opacity:0;width:0;height:0;position:absolute}
+  .sw .sl{position:absolute;inset:0;background:#CBD5DC;border-radius:999px;transition:.2s;cursor:pointer}
+  .sw .sl:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .sw input:checked+.sl{background:var(--violet)}.sw input:checked+.sl:before{transform:translateX(20px)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:100;background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:90vw}
+  .login{min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--ink)}
+  .login form{background:#fff;border-radius:16px;padding:28px;width:380px;max-width:100%;display:flex;flex-direction:column;gap:14px}
+  .login h1{font-size:30px;text-transform:uppercase}
+  .login .err{color:var(--red);font-size:13px;min-height:18px}
+  @media(max-width:640px){.mb{grid-template-columns:1fr}.ov{padding:0}.modal{border-radius:0;max-height:100vh;height:100%}.who{display:none}.wrap{padding:18px 16px 50px}}
+  /* ===== Wathe SAV v2 ===== */
+  .head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+  .head .t{flex:1;min-width:220px}
+  .btn.big{padding:11px 18px;font-size:14px}
+  .ctrl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:0 0 18px}
+  .ctrl .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}.ctrl .dot.off{background:#CBD5DC}.ctrl .dot.old{background:var(--amber)}
+  .linkbtn{border:0;background:0;color:var(--violet);font-weight:700;font-size:12px;cursor:pointer;padding:0;text-decoration:underline}
+  .cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .cat{position:relative;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px 11px 15px;cursor:pointer;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+  .cat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+  .cat .n{font-family:var(--f-display);font-stretch:85%;font-weight:800;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+  .cat .l{font-weight:700;font-size:13px;line-height:1.25}
+  .cat .s{font-size:11px;color:var(--muted)}
+  .cat.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+  .cat.all{--c:var(--ink)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;color:#374151;cursor:pointer}
+  .chip i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--c)}
+  .chip b{font-weight:600;color:var(--muted)}
+  .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}.chip.on b{color:#B8C6D1}
+  .filters{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+  .filters .fld{margin:0}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .ctag{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px}
+  .ctag::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--c);flex:none}
+  .age{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}.age.mid{color:var(--amber)}.age.old{color:var(--red)}
+  .s2{color:var(--muted);font-size:11px;margin-top:2px}
+  .warn{color:#8A5A0B;font-size:11px;font-weight:700;margin-top:3px}
+  .flag{display:inline-block;background:#E8E2F7;color:#5B3FA8;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;margin-left:4px;vertical-align:1px}
+  .flag.ex{background:#DCEEF1;color:var(--violet)}
+  .trk{color:var(--violet);text-decoration:none;font-family:var(--f-mono);font-size:12px}.trk:hover{text-decoration:underline}
+  .carrier{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.04em;margin-right:4px}
+  #rows tr{cursor:pointer}#rows tr:hover td{background:#F4F8F9}
+  /* modales */
+  .modal.wide{width:900px}
+  .steph{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:4px}
+  .steph span{width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:12px;letter-spacing:0}
+  .steph.off span{background:#CBD5DC}
+  .order{grid-column:1/-1;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#F7F9FA;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 18px}
+  .order .k{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .order .v{font-weight:700;font-size:13px;word-break:break-word}
+  .order .v.none{color:var(--muted);font-weight:500}
+  .prods{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+  .prod{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;background:#fff}
+  .prod input{accent-color:var(--violet)}
+  .prod.on{border-color:var(--violet);box-shadow:0 0 0 1px var(--violet)}
+  .catpick{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+  .catpick button{position:relative;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px 10px 14px;cursor:pointer;overflow:hidden}
+  .catpick button::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+  .catpick b{display:block;font-size:13px}.catpick small{color:var(--muted);font-size:11px}
+  .catpick button.on{border-color:var(--c);box-shadow:0 0 0 2px var(--c);background:#FBFCFC}
+  .motifs{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+  .motifs button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;color:#374151}
+  .motifs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .auto{grid-column:1/-1;font-size:12px;color:var(--violet);font-weight:700;min-height:16px}
+  .fld textarea{border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:13px;min-height:78px;resize:vertical;width:100%}
+  .steps{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+  .steps button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;color:#374151}
+  .note{grid-column:1/-1;background:#E8E2F7;color:#4A3290;border-radius:10px;padding:10px 12px;font-size:13px}
+  .note.amber{background:var(--amber-soft);color:#7A4D0C}
+  .log{grid-column:1/-1;list-style:none;margin:0;padding:0 0 0 12px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto}
+  .log li{font-size:13px}.log small{display:block;color:var(--muted);font-size:11px}
+  .msg{grid-column:1/-1;font-size:12px;color:var(--muted)}
+  .msg.err{color:var(--red);font-weight:600}
+  .phase{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:12px;color:var(--c)}
+  .phase::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--c)}
+  .btn.ok{background:var(--green);border-color:var(--green);color:#fff;white-space:nowrap}.btn.ok:hover{background:#235F3D}
+  #rows .btn.ok{padding:6px 10px;font-size:12px}
+  #rows tr.done td{color:var(--muted)}#rows tr.done .ctag,#rows tr.done b{opacity:.75}
+  .dt{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .note.green{background:var(--green-soft);color:var(--green)}
+  .mb .motifs{grid-column:auto}
+</style>
+</head>
+<body>
+<div class="login hide" id="loginScreen"><form id="loginForm" autocomplete="on">
+  <div class="brand" style="color:var(--ink)"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0E5A6B"/><path d="M9 12l7-4 7 4v8l-7 4-7-4z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/></svg>Wathe SAV</div>
+  <div class="sub" style="margin:0">Connectez-vous avec votre compte habituel (le même que l'ERP).</div>
+  <div class="fld"><label for="loginEmail">E-mail</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+  <div class="fld"><label for="loginPass">Mot de passe</label><input id="loginPass" type="password" autocomplete="current-password" required></div>
+  <div class="err" id="loginErr"></div>
+  <button class="btn v" id="loginBtn" type="submit" style="justify-content:center;padding:11px">Se connecter</button>
+</form></div>
+
+<div id="app" class="hide">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12707F"/><path d="M9 12l7-4 7 4v8l-7 4-7-4z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/></svg>Wathe SAV</div>
+    <span class="spacer"></span><span class="who" id="who"></span><button class="btn" id="logoutBtn">Déconnexion</button>
+  </header>
+  <main class="wrap">
+    <div class="head">
+      <div class="t"><h1>SAV</h1><div class="sub" style="margin:0">Déclarez un problème à partir du n° de commande Shopify : tout le reste se remplit tout seul.</div></div>
+      <button class="btn v big" id="declareBtn">+ Déclarer un SAV</button>
+    </div>
+    <div class="ctrl" id="ctrlInfo"><span class="dot off"></span>Chargement…</div>
+
+    <div class="cats" id="cats"></div>
+    <div class="chips" id="phChips"></div>
+    <div class="filters">
+      <div class="fld" style="flex:1;min-width:200px"><label for="fQ">Recherche</label><input id="fQ" placeholder="Commande, réf. marketplace, réf. fournisseur, SKU, suivi…"></div>
+      <div class="fld"><label for="fFour">Fournisseur</label><select id="fFour"></select></div>
+      <div class="fld"><label for="fMp">Marketplace</label><select id="fMp"></select></div>
+      <button class="btn" id="fClear">Effacer les filtres</button>
+    </div>
+    <div class="tablecard"><div class="tmeta" id="meta"></div><div style="overflow-x:auto"><table>
+      <thead><tr><th>Ouvert le</th><th>Avancement</th><th>Problème</th><th>Commande</th><th>Fournisseur</th><th>Produit</th><th>Suivi</th><th style="text-align:right">Prix d'achat</th><th></th></tr></thead>
+      <tbody id="rows"><tr><td colspan="9" class="empty">Chargement…</td></tr></tbody></table></div></div>
+  </main>
+</div>
+
+<!-- Déclarer / modifier un SAV -->
+<div class="ov" id="ovL"><div class="modal wide">
+  <div class="mh"><span id="mTitle">Déclarer un SAV</span><button class="x" data-close="ovL" aria-label="Fermer">×</button></div>
+  <div class="mb" id="mBody"></div>
+  <div class="mf"><div id="mLeft" style="display:flex;gap:8px;flex-wrap:wrap"></div><div style="display:flex;gap:8px"><button class="btn" data-close="ovL">Annuler</button><button class="btn v" id="mSave">Déclarer le SAV</button></div></div>
+</div></div>
+
+<!-- Marquer comme traité -->
+<div class="ov" id="ovDone"><div class="modal">
+  <div class="mh"><span id="dTitle">Marquer comme traité</span><button class="x" data-close="ovDone" aria-label="Fermer">×</button></div>
+  <div class="mb">
+    <div class="fld full"><label>Comment ce SAV s'est-il terminé ?</label><div class="motifs" id="dRes"></div></div>
+    <div class="fld"><label for="dMontant">Montant récupéré (€)</label><input id="dMontant" type="number" step="0.01" min="0" inputmode="decimal" placeholder="facultatif"></div>
+    <div class="fld"><label for="dNote">Note</label><input id="dNote" placeholder="Ex. avoir Turum n°…"></div>
+    <div class="msg">Le SAV sort de la liste des SAV actifs. Il reste consultable avec le filtre « Traités », et peut être rouvert.</div>
+  </div>
+  <div class="mf"><button class="btn" data-close="ovDone">Annuler</button><button class="btn ok" id="dSave">Marquer comme traité ✓</button></div>
+</div></div>
+
+<!-- Réglages -->
+<div class="ov" id="ovCfg"><div class="modal">
+  <div class="mh"><span>Contrôle automatique</span><button class="x" data-close="ovCfg" aria-label="Fermer">×</button></div>
+  <div class="mb">
+    <div class="fld full"><label for="cJours">Créer une ligne de SAV quand une commande n'est pas expédiée après (jours)</label><input id="cJours" type="number" min="1" max="30"></div>
+    <div class="msg" id="cInfo"></div>
+  </div>
+  <div class="mf"><button class="btn" id="cRun">Lancer le contrôle maintenant</button><button class="btn v" id="cSave">Enregistrer</button></div>
+</div></div>
+
+<div class="toast hide" id="toast" role="status"></div>
+<script>
+const SB_URL="https://tqznrfjbgnwoatohkyxt.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxem5yZmpiZ253b2F0b2hreXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NDgwNDUsImV4cCI6MjA5NjMyNDA0NX0.MoVQq8phK6bU3oja0p1jvOR0uWdObyF_AvdR62I4i6U";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+/* =====================================================================
+   WATHE SAV — déclaration et suivi des litiges
+   Tables Supabase : litiges, sav_config. Lecture seule : fournisseurs (ERP).
+   Fonction serveur « sav » : lookup (commande Shopify + achat FlowStock), sync (contrôle 6 h).
+   ===================================================================== */
+const CATS=[
+  {id:"acheminement",l:"Problème d'acheminement",s:"Perdu, volé, bloqué, livré mais pas reçu",c:"#B4371A",motifs:["Colis perdu","Colis volé","Colis bloqué en transit","Livré mais pas reçu"]},
+  {id:"non_expedie",l:"Commande non expédiée",s:"Pas partie 3 jours après la commande (automatique)",c:"#8A5A0B",motifs:["Pas expédié à temps","Rupture chez le fournisseur","Annulé par la marketplace"]},
+  {id:"erreur",l:"Mauvais article envoyé",s:"Taille, modèle ou couleur : souvent un échange",c:"#5B3FA8",motifs:["Erreur de taille","Erreur de modèle","Erreur de couleur"]},
+  {id:"retour_transporteur",l:"Colis revenu non livré",s:"Refusé, non réclamé, adresse incorrecte",c:"#1F5F9E",motifs:["Colis refusé par le client","Échec de livraison / non réclamé","Adresse incorrecte","Retourné à l'expéditeur"]},
+  {id:"retour_acheminement",l:"Retour client perdu",s:"Retour perdu, bloqué ou jamais reçu",c:"#0E7C86",motifs:["Retour perdu","Retour bloqué en transit","Retour jamais reçu"]},
+  {id:"retour_non_conforme",l:"Retour client non conforme",s:"Mauvaise paire, paire portée ou abîmée, boîte manquante",c:"#9B2C6B",motifs:["Mauvaise paire renvoyée","Paire portée / usagée","Paire abîmée","Boîte manquante ou abîmée","Contrefaçon renvoyée","Colis vide ou incomplet"]},
+  {id:"autre",l:"Autre problème",s:"Produit défectueux, colis abîmé, cas particuliers",c:"#5A6878",motifs:["Produit défectueux","Colis endommagé","Autre"]}
+];
+const CATM=Object.fromEntries(CATS.map(c=>[c.id,c]));
+/* Avancement : À traiter -> En cours (plusieurs étapes) -> Traité */
+const PH={todo:{l:"À traiter",c:"#5B3FA8"},doing:{l:"En cours",c:"#B36B00"},done:{l:"Traité",c:"#2A7048"}};
+const ST=[
+  {id:"a_traiter",l:"À traiter",ph:"todo",bg:"#E8E2F7",fg:"#5B3FA8",h:"Personne ne s'en est encore occupé."},
+  {id:"en_cours",l:"Traitement commencé",ph:"doing",bg:"#FBEFD9",fg:"#8A5A0B",h:"Quelqu'un a commencé à s'en occuper."},
+  {id:"attente_reponse",l:"En attente de réponse",ph:"doing",bg:"#FBEFD9",fg:"#8A5A0B",h:"Déclaré au fournisseur, au transporteur ou à la marketplace : en attente de leur réponse."},
+  {id:"a_retourner",l:"À retourner",ph:"doing",bg:"#FBE3DC",fg:"#B4371A",h:"Le produit est chez vous et doit repartir (fournisseur ou échange)."},
+  {id:"retour_envoye",l:"Retour envoyé",ph:"doing",bg:"#E0E7F8",fg:"#3B4FA8",h:"Retour expédié, en attente de réception."},
+  {id:"a_rembourser",l:"Remboursement attendu",ph:"doing",bg:"#E0ECF8",fg:"#1F5F9E",h:"Remboursement ou avoir accepté, pas encore reçu."},
+  {id:"traite",l:"Traité",ph:"done",bg:"#DDF1E4",fg:"#2A7048",h:"Terminé : retiré de la liste des SAV actifs."}
+];
+const STM=Object.fromEntries(ST.map(s=>[s.id,s]));
+const LEGACY={a_qualifier:"a_traiter",a_declarer:"a_traiter",attente_fournisseur:"attente_reponse",attente_turum:"attente_reponse",rembourse:"traite",refuse:"traite",sans_suite:"traite"};
+const LEGACY_RES={rembourse:"Remboursé / avoir reçu",refuse:"Refusé / perte",sans_suite:"Sans suite"};
+const RESULTATS=["Remboursé / avoir reçu","Échange effectué","Colis renvoyé au client","Refusé / perte","Sans suite"];
+const RESP={fournisseur:"Fournisseur",transporteur:"Transporteur",marketplace:"Marketplace",interne:"Nous (interne)"};
+const CARRIERS=["","UPS","DPD","DHL","Colissimo","Chronopost","Mondial Relay","GLS","Autre"];
+const ECHANGE=["","Échange à proposer","Échange demandé","Échange envoyé","Échange terminé","Pas d'échange (remboursement)"];
+const MPS=["Décathlon","Spartoo","Temu","Shein","CDiscount","Miinto","Joom","Site web","Boutique"];
+
+/* ---------- rangement automatique d'après la description ---------- */
+const RULES=[
+  [/retour.{0,40}(perdu|bloqu|jamais re[çc]u|pas re[çc]u|pas arriv|introuvable)|(perdu|bloqu).{0,30}retour/i,"retour_acheminement",[[/perdu|introuvable/i,"Retour perdu"],[/bloqu/i,"Retour bloqué en transit"],[/re[çc]u|arriv/i,"Retour jamais reçu"]]],
+  [/usag|port[ée]e?s?\b|sale|pas la bonne paire|mauvaise paire|autre paire|pas la m[êe]me|fausse|contrefa|colis vide|incomplet|bo[iî]te (manquante|ab[iî]m|d[ée]chir)|sans (la )?bo[iî]te|ab[iî]m[ée]e?s? par le client|renvoy[ée].{0,30}(ab[iî]m|us[ée]|sale)/i,"retour_non_conforme",[[/pas la bonne|mauvaise paire|autre paire|pas la m[êe]me/i,"Mauvaise paire renvoyée"],[/usag|port[ée]|sale/i,"Paire portée / usagée"],[/fausse|contrefa/i,"Contrefaçon renvoyée"],[/vide|incomplet/i,"Colis vide ou incomplet"],[/bo[iî]te/i,"Boîte manquante ou abîmée"],[/ab[iî]m/i,"Paire abîmée"]]],
+  [/refus|non r[ée]clam|pas r[ée]clam|pas [ée]t[ée] r[ée]cup|retour(n[ée])? (à|a) l.?exp[ée]diteur|retour exp[ée]diteur|npai|adresse|[ée]chec de livraison|pas pu (être |etre )?livr|n.a pas pu livr|absent|avis de passage/i,"retour_transporteur",[[/refus/i,"Colis refusé par le client"],[/adresse|npai/i,"Adresse incorrecte"],[/r[ée]clam|r[ée]cup|[ée]chec|pas pu|absent|avis/i,"Échec de livraison / non réclamé"],[/exp[ée]diteur/i,"Retourné à l'expéditeur"]]],
+  [/taille|pointure|mod[èe]le|couleur|mauvais produit|mauvaise r[ée]f|erreur de produit|pas le bon produit|[ée]change/i,"erreur",[[/taille|pointure/i,"Erreur de taille"],[/couleur/i,"Erreur de couleur"],[/mod[èe]le|produit|r[ée]f/i,"Erreur de modèle"]]],
+  [/pas (encore )?(été )?exp[ée]di|non exp[ée]di|jamais parti|pas parti|rupture|annul/i,"non_expedie",[[/rupture/i,"Rupture chez le fournisseur"],[/annul/i,"Annulé par la marketplace"],[/./,"Pas expédié à temps"]]],
+  [/perdu|vol[ée]?\b|vol |d[ée]rob|bloqu|livr[ée] mais|pas re[çc]u|jamais re[çc]u|non re[çc]u|pas l.?avoir re[çc]u|n.?a (jamais |pas )?re[çc]u|alors que livr|marqu[ée] (comme )?livr|jamais arriv|pas arriv/i,"acheminement",[[/vol|d[ée]rob/i,"Colis volé"],[/bloqu/i,"Colis bloqué en transit"],[/livr|re[çc]u/i,"Livré mais pas reçu"],[/perdu|arriv/i,"Colis perdu"]]],
+  [/endommag|cass[ée]|[ée]cras[ée]|d[ée]chir|ab[iî]m|d[ée]fect|d[ée]coll|trou[ée]|cousu|semelle|fermeture/i,"autre",[[/endommag|cass|[ée]cras|d[ée]chir|ab[iî]m/i,"Colis endommagé"],[/./,"Produit défectueux"]]]
+];
+function classify(t){t=(t||"").trim();if(t.length<4)return null;for(const [re,cat,ms] of RULES){if(re.test(t)){const m=(ms.find(x=>x[0].test(t))||[])[1]||CATM[cat].motifs[0];return {cat,motif:m};}}return null;}
+function defaultResp(cat,fournNom){
+  if(cat==="retour_non_conforme")return "marketplace";
+  if(cat==="retour_acheminement")return "transporteur";
+  if(cat==="acheminement"||cat==="retour_transporteur")return fournNom?"fournisseur":"transporteur";
+  return fournNom?"fournisseur":"interne";
+}
+
+/* ---------- état et utilitaires ---------- */
+let L=[],CFG={},loaded=false,USER="",cur=null,curSt="a_traiter",curHist=[],fiche=null,prodIdx=0,pickCat="",pickMotif="",catTouched=false,respTouched=false,doneId=null,doneRes="";
+const F={cat:"",ph:"actifs",q:"",four:"",mp:""};
+try{const v=JSON.parse(localStorage.getItem("wsav_f3")||"null");if(v)Object.assign(F,v,{q:""});}catch(e){}
+const saveF=()=>{try{localStorage.setItem("wsav_f3",JSON.stringify(F));}catch(e){}};
+const E=s=>String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const eur=n=>(n==null||n===""||isNaN(n))?"—":new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(+n);
+const days=d=>{if(!d)return null;const t=Date.parse(d.length<=10?d+"T00:00:00":d);return isNaN(t)?null:Math.max(0,Math.floor((Date.now()-t)/864e5));};
+const ageTxt=n=>n==null?"—":n===0?"aujourd'hui":n<60?n+" j":Math.round(n/30.4)+" mois";
+const fD=d=>{if(!d)return"";try{return new Date(d.length<=10?d+"T00:00:00":d).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit"});}catch(e){return d;}};
+const fDT=d=>{try{return new Date(d).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"});}catch(e){return d||"";}};
+const num=s=>String(s||"").replace(/\D/g,"");
+const phase=l=>(STM[l.statut]||STM.a_traiter).ph;
+function pill(id){const s=STM[id]||STM.a_traiter;return `<span class="pill" style="background:${s.bg};color:${s.fg}">${E(s.l)}</span>`;}
+function carrierOf(t,c){t=(t||"").trim().toUpperCase().replace(/\s/g,"");if(!t)return c||"";if(/^1Z[0-9A-Z]{16}$/.test(t))return"UPS";if(/^JJD|^JVGL/.test(t))return"DHL";if(/^\d{14}$/.test(t))return"DPD";return c||"";}
+function trackUrl(t,c){const e=encodeURIComponent((t||"").trim());return ({UPS:"https://www.ups.com/track?loc=fr_FR&tracknum="+e,DPD:"https://trace.dpd.fr/fr/trace/"+e,DHL:"https://www.dhl.com/fr-fr/home/suivi.html?tracking-id="+e,Colissimo:"https://www.laposte.fr/outils/suivre-vos-envois?code="+e,Chronopost:"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT="+e})[c]||("https://parcelsapp.com/fr/tracking/"+e);}
+function trkHtml(t,c){if(!t)return"";const cc=carrierOf(t,c);return `<span class="carrier">${E(cc)}</span><a class="trk" href="${trackUrl(t,cc)}" target="_blank" rel="noopener" data-stop="1">${E(t)}</a>`;}
+const sortKey=l=>(l.dateOuverture||"")+"|"+(l.createdAt||"");
+let _tt;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.remove("hide");clearTimeout(_tt);_tt=setTimeout(()=>t.classList.add("hide"),4500);}
+async function me(){if(USER)return USER;try{const {data}=await sb.auth.getSession();USER=data?.session?.user?.email||"Équipe";}catch(e){USER="Équipe";}return USER;}
+function norm(l){if(LEGACY[l.statut]){if(!l.resultat&&LEGACY_RES[l.statut])l.resultat=LEGACY_RES[l.statut];l.statut=LEGACY[l.statut];}if(!STM[l.statut])l.statut="a_traiter";return l;}
+
+/* ---------- données ---------- */
+async function load(){
+  try{
+    const out=[];let from=0;
+    while(true){const {data,error}=await sb.from("litiges").select("id,data").order("id",{ascending:true}).range(from,from+999);if(error)throw error;(data||[]).forEach(r=>out.push(norm({...(r.data||{}),id:r.id})));if(!data||data.length<1000)break;from+=1000;}
+    L=out;loaded=true;
+    const {data:c}=await sb.from("sav_config").select("data").eq("id",1).maybeSingle();CFG=(c&&c.data)||{};
+  }catch(e){loaded=false;rows.innerHTML=`<tr><td colspan="9" class="empty">La base SAV n'est pas encore installée : lancez le script <b>01_installation.sql</b> dans Supabase.<br><small>${E(e.message||e)}</small></td></tr>`;return false;}
+  return true;
+}
+async function write(l){
+  if(l.id!=null&&l._loadedUpdatedAt){
+    const {data:c}=await sb.from("litiges").select("data").eq("id",l.id).maybeSingle();const u=c&&c.data&&c.data.updatedAt;
+    if(u&&u!==l._loadedUpdatedAt){
+      if(!confirm(`Ce SAV a été modifié par ${c.data.updatedBy||"quelqu'un"} le ${fDT(u)} pendant que vous l'aviez ouvert.\n\nOK = enregistrer vos modifications quand même (les deux historiques sont conservés)\nAnnuler = abandonner et recharger`)){await load();render();return false;}
+      const h0=c.data.historique||[];l.historique=[...h0,...(l.historique||[]).filter(h=>!h0.some(x=>x.d===h.d&&x.t===h.t))].sort((a,b)=>a.d<b.d?-1:1).slice(-80);
+    }
+  }
+  const {_loadedUpdatedAt,...data}=l;const id=data.id;delete data.id;
+  const {error}=await sb.from("litiges").upsert({id,data,updated_at:new Date().toISOString()});
+  if(error){alert("Enregistrement impossible : "+error.message);return false;}
+  const i=L.findIndex(x=>x.id===id);const row={...data,id};if(i>=0)L[i]=row;else L.push(row);return true;
+}
+
+/* ---------- liste ---------- */
+function ctrlInfo(){
+  const s=CFG.lastSync,el=document.getElementById("ctrlInfo");
+  if(!s){el.innerHTML=`<span class="dot off"></span><span>Contrôle des commandes non expédiées : pas encore lancé</span> <button class="linkbtn" id="cfgOpen">Réglages</button>`;}
+  else{const h=(Date.now()-Date.parse(s.le))/36e5;el.innerHTML=`<span class="dot ${h>30?"old":""}"></span><span>Contrôle des commandes non expédiées : ${fDT(s.le)} · ${s.crees} nouveau(x) SAV</span> <button class="linkbtn" id="cfgOpen">Réglages</button>`;}
+  document.getElementById("cfgOpen").onclick=openCfg;
+}
+function matchPh(l){const p=phase(l);if(F.ph==="actifs")return p!=="done";if(F.ph==="all")return true;return p===F.ph;}
+function filtered(ignoreCat){
+  const q=F.q.trim().toLowerCase();
+  return L.filter(l=>{
+    if(!matchPh(l))return false;
+    if(!ignoreCat&&F.cat&&(l.categorie||"autre")!==F.cat)return false;
+    if(F.four&&(l.fournNom||"")!==F.four)return false;
+    if(F.mp&&(l.marketplace||"")!==F.mp)return false;
+    if(q){const hay=[l.orderName,l.refMarketplace,l.refFournisseur,l.sku,l.produit,l.tracking,l.trackingRetour,l.marketplace,l.fournNom,l.motif,l.description,l.taille,l.commentaires].join(" ").toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  }).sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
+}
+function render(){
+  ctrlInfo();if(!loaded)return;
+  const base=filtered(true);
+  cats.innerHTML=`<button class="cat all ${F.cat===""?"on":""}" data-cat=""><span class="n">${base.length}</span><span class="l">Tous les problèmes</span></button>`+CATS.map(c=>`<button class="cat ${F.cat===c.id?"on":""}" data-cat="${c.id}" style="--c:${c.c}"><span class="n">${base.filter(l=>(l.categorie||"autre")===c.id).length}</span><span class="l">${E(c.l)}</span></button>`).join("");
+  const inCat=L.filter(l=>!F.cat||(l.categorie||"autre")===F.cat);
+  const cnt=p=>inCat.filter(l=>p==="actifs"?phase(l)!=="done":p==="all"?true:phase(l)===p).length;
+  const chip=(id,label,c)=>`<button class="chip ${F.ph===id?"on":""}" data-ph="${id}" style="--c:${c}"><i></i>${E(label)} <b>${cnt(id)}</b></button>`;
+  phChips.innerHTML=chip("actifs","SAV actifs","var(--violet)")+chip("todo","À traiter",PH.todo.c)+chip("doing","En cours",PH.doing.c)+chip("done","Traités",PH.done.c)+chip("all","Tout","#94a3b8");
+  const opts=(el,vals,val,all)=>{el.innerHTML=`<option value="">${all}</option>`+vals.map(v=>`<option value="${E(v[0])}" ${v[0]===val?"selected":""}>${E(v[1])}</option>`).join("");};
+  opts(fFour,[...new Set(L.map(l=>l.fournNom).filter(Boolean))].sort().map(v=>[v,v]),F.four,"Tous");
+  opts(fMp,[...new Set(L.map(l=>l.marketplace).filter(Boolean))].sort().map(v=>[v,v]),F.mp,"Toutes");
+  const list=filtered(false);
+  meta.textContent=`${list.length} SAV · du plus récent au plus ancien · ${eur(list.reduce((s,l)=>s+(+l.prixAchat||0),0))} au prix d'achat`;
+  rows.innerHTML=list.length?list.map(l=>{
+    const s=STM[l.statut]||STM.a_traiter,c=CATM[l.categorie]||CATM.autre,n=days(l.dateOuverture),done=s.ph==="done";
+    return `<tr data-id="${l.id}" class="${done?"done":""}">
+      <td><div class="dt">${fD(l.dateOuverture)}</div><div class="s2 age ${!done?(n>30?"old":n>14?"mid":""):""}">${done?"":ageTxt(n)}</div></td>
+      <td><span class="phase" style="--c:${PH[s.ph].c}">${PH[s.ph].l}</span><div style="margin-top:4px">${s.ph==="doing"?pill(l.statut):""}${done&&l.resultat?`<span class="s2">${E(l.resultat)}</span>`:""}</div>${l.alerte&&!done?`<div class="warn">⚠ ${E(l.alerte)}</div>`:""}</td>
+      <td><span class="ctag" style="--c:${c.c}">${E(l.motif||c.l)}</span>${l.source==="auto"?'<span class="flag">auto</span>':""}${l.echange?`<span class="flag ex">${E(l.echange)}</span>`:""}<div class="s2">${E(c.l)}</div></td>
+      <td><b class="sku" style="color:var(--ink)">${E(l.orderName||"—")}</b><div class="s2">${E([l.marketplace,l.refMarketplace].filter(Boolean).join(" · "))}</div></td>
+      <td>${E(l.fournNom||"—")}<div class="s2 sku">${E(l.refFournisseur||"")}</div></td>
+      <td><span class="sku">${E(l.sku||"")}</span>${l.taille?` · T. ${E(l.taille)}`:""}<div class="s2">${E((l.produit||"").slice(0,44))}</div></td>
+      <td>${trkHtml(l.tracking,l.transporteur)||'<span class="muted">—</span>'}${l.trackingRetour?`<div class="s2">Retour : ${trkHtml(l.trackingRetour,l.transporteurRetour)}</div>`:""}</td>
+      <td style="text-align:right;font-weight:700">${eur(l.prixAchat)}${l.montantRecupere?`<div class="s2" style="color:var(--green)">récupéré ${eur(l.montantRecupere)}</div>`:""}</td>
+      <td style="text-align:right">${done?`<span class="s2">le ${fD(l.dateTraitement||l.updatedAt)}</span>`:`<button class="btn ok" data-done="${l.id}" data-stop="1" title="Marquer ce SAV comme traité">Traité ✓</button>`}</td></tr>`;}).join(""):`<tr><td colspan="9" class="empty">${F.ph==="actifs"?"Aucun SAV actif pour ces filtres. Bravo !":"Aucun SAV ne correspond à ces filtres."}</td></tr>`;
+}
+
+/* ---------- champs ---------- */
+const fld=(id,label,val,o={})=>{
+  const full=o.full?" full":"";
+  if(o.sel)return `<div class="fld${full}"><label for="i_${id}">${label}</label><select id="i_${id}">${o.sel.map(x=>{const v=Array.isArray(x)?x[0]:x,t=Array.isArray(x)?x[1]:x;return `<option value="${E(v)}" ${String(v)===String(val??"")?"selected":""}>${E(t||"—")}</option>`;}).join("")}</select></div>`;
+  if(o.area)return `<div class="fld${full}"><label for="i_${id}">${label}</label><textarea id="i_${id}" placeholder="${E(o.ph||"")}">${E(val)}</textarea></div>`;
+  return `<div class="fld${full}"><label for="i_${id}">${label}</label><input id="i_${id}" ${o.type?`type="${o.type}"`:""} ${o.type==="number"?'step="0.01" min="0" inputmode="decimal"':""} ${o.list?`list="${o.list}"`:""} placeholder="${E(o.ph||"")}" value="${E(val)}" ${o.mono?'style="font-family:var(--f-mono)"':""}></div>`;
+};
+const lists=()=>`<datalist id="mpList">${MPS.map(m=>`<option value="${m}">`).join("")}</datalist><datalist id="fourList">${[...new Set(["Turum","JKN","Golden Sneakers",...L.map(l=>l.fournNom).filter(Boolean)])].map(m=>`<option value="${E(m)}">`).join("")}</datalist>`;
+/* Bloc d'informations modifiables (pré-rempli depuis Shopify quand c'est possible) */
+function infoFields(d){
+  return fld("marketplace","Marketplace",d.marketplace||"",{list:"mpList"})+fld("refMarketplace","Réf. marketplace",d.refMarketplace||"",{mono:1})+
+    fld("fournNom","Fournisseur",d.fournNom||"",{list:"fourList",ph:"Turum, JKN, Golden Sneakers, stock perso…"})+fld("refFournisseur","Réf. fournisseur",d.refFournisseur||"",{mono:1,ph:"WS/2026/9/1092"})+
+    fld("produit","Produit",d.produit||"")+fld("sku","SKU",d.sku||"",{mono:1})+
+    fld("taille","Taille",d.taille||"")+fld("prixAchat","Prix d'achat (€)",d.prixAchat??"",{type:"number"})+
+    fld("transporteur","Transporteur",carrierOf(d.tracking,d.transporteur)||"",{sel:CARRIERS.map(c=>[c,c||"—"])})+fld("tracking","N° de suivi",d.tracking||"",{mono:1});
+}
+function readInfo(g){const pn=v=>{if(v===undefined||v==="")return null;const n=parseFloat(String(v).replace(",","."));return isNaN(n)?null:Math.round(n*100)/100;};
+  const trk=g("tracking");return {marketplace:g("marketplace"),refMarketplace:g("refMarketplace"),fournNom:g("fournNom"),refFournisseur:g("refFournisseur"),produit:g("produit"),sku:g("sku"),taille:g("taille"),prixAchat:pn(g("prixAchat")),tracking:trk,transporteur:carrierOf(trk,g("transporteur"))};}
+
+/* ---------- déclarer ---------- */
+function openDeclare(prefillOrder){
+  cur=null;fiche=null;prodIdx=0;pickCat="";pickMotif="";catTouched=false;respTouched=false;curSt="a_traiter";curHist=[];
+  mTitle.textContent="Déclarer un SAV";mSave.textContent="Déclarer le SAV";mLeft.innerHTML="";
+  mBody.innerHTML=`
+    <div class="steph"><span>1</span>La commande</div>
+    <div class="fld full"><label for="i_lookup">Référence Shopify de la commande</label><div style="display:flex;gap:8px"><input id="i_lookup" placeholder="7389" value="${E(prefillOrder||"")}" inputmode="numeric" style="flex:1;font-size:15px"><button class="btn v" type="button" id="lookupBtn">Rechercher</button></div></div>
+    <div class="msg" id="lookupMsg">Les informations se remplissent depuis Shopify et FlowStock. Vous pouvez toutes les modifier ou les saisir à la main.</div>
+    <div id="prodBox" style="display:contents"></div>
+    <div id="infoBox" style="display:contents">${infoFields({})}</div>
+    <div class="steph off" id="h2"><span>2</span>Le problème</div>
+    ${fld("description","Que s'est-il passé ?","",{area:1,full:1,ph:"Ex. : le client a reçu une pointure 42 au lieu de 43 / colis refusé par le client / retour reçu avec une paire portée…"})}
+    <div class="auto" id="autoMsg"></div>
+    <div class="catpick" id="catPick"></div>
+    <div class="motifs" id="motifPick"></div>
+    <div class="steph off" id="h3"><span>3</span>Le suivi</div>
+    <div id="extraBox" style="display:contents"></div>${lists()}`;
+  document.getElementById("ovL").classList.add("show");
+  renderPick();renderExtra();
+  lookupBtn.onclick=doLookup;i_lookup.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();doLookup();}});
+  i_description.addEventListener("input",()=>{if(catTouched)return;const r=classify(i_description.value);if(r){pickCat=r.cat;pickMotif=r.motif;autoMsg.textContent=`Rangé automatiquement dans « ${CATM[r.cat].l} » · ${r.motif}. Cliquez sur une autre catégorie si besoin.`;}else{autoMsg.textContent="";}renderPick();renderExtra();});
+  i_fournNom.addEventListener("input",()=>{if(!respTouched)renderExtra();});
+  setTimeout(()=>i_lookup.focus(),30);if(prefillOrder)doLookup();
+}
+function renderPick(){
+  const box=document.getElementById("catPick");if(!box)return;
+  box.innerHTML=CATS.map(c=>`<button type="button" data-pc="${c.id}" class="${pickCat===c.id?"on":""}" style="--c:${c.c}"><b>${E(c.l)}</b><small>${E(c.s)}</small></button>`).join("");
+  const c=CATM[pickCat];motifPick.innerHTML=c?c.motifs.map(m=>`<button type="button" data-pm="${E(m)}" class="${pickMotif===m?"on":""}">${E(m)}</button>`).join(""):"";
+  box.querySelectorAll("[data-pc]").forEach(b=>b.onclick=()=>{catTouched=true;pickCat=b.dataset.pc;if(!CATM[pickCat].motifs.includes(pickMotif))pickMotif=CATM[pickCat].motifs[0];const am=document.getElementById("autoMsg");if(am)am.textContent="";renderPick();renderExtra();});
+  motifPick.querySelectorAll("[data-pm]").forEach(b=>b.onclick=()=>{catTouched=true;pickMotif=b.dataset.pm;renderPick();});
+  const h2=document.getElementById("h2");if(h2)h2.classList.toggle("off",!pickCat);
+}
+function renderExtra(){
+  const box=document.getElementById("extraBox");if(!box)return;
+  const keep=k=>{const el=document.getElementById("i_"+k);return el?el.value:undefined;};
+  const four=keep("fournNom")||"";
+  const resp=respTouched&&keep("responsable")?keep("responsable"):defaultResp(pickCat,four);
+  const retourCat=["retour_transporteur","retour_acheminement","retour_non_conforme"].includes(pickCat);
+  document.getElementById("h3").classList.toggle("off",!pickCat);
+  box.innerHTML=fld("responsable","Qui doit régler le problème ?",resp,{sel:Object.entries(RESP)})+
+    (pickCat==="erreur"?fld("echange","Échange",keep("echange")||"Échange à proposer",{sel:ECHANGE.map(x=>[x,x||"—"])}):"")+
+    (retourCat?fld("trackingRetour","N° de suivi du retour",keep("trackingRetour")||"",{mono:1,ph:"si connu"}):"");
+  i_responsable.onchange=()=>{respTouched=true;};
+}
+function prodCard(f){
+  if(!f||!f.produits||f.produits.length<2)return"";
+  return `<div class="prods"><div class="s2" style="margin:0">Cette commande contient ${f.produits.length} articles : choisissez celui qui pose problème.</div>${f.produits.map((p,i)=>`<label class="prod ${i===prodIdx?"on":""}"><input type="radio" name="prod" value="${i}" ${i===prodIdx?"checked":""}><span style="flex:1"><b>${E(p.produit)}</b><div class="s2"><span class="sku">${E(p.sku)}</span>${p.taille?` · T. ${E(p.taille)}`:""}${p.qte>1?` · x${p.qte}`:""}</div></span><b>${eur(p.prixAchat)}</b></label>`).join("")}</div>`;
+}
+function fillFromFiche(){
+  const f=fiche||{},p=(f.produits||[])[prodIdx]||{};
+  infoBox.innerHTML=infoFields({...f,produit:p.produit,sku:p.sku,taille:p.taille,prixAchat:p.prixAchat});
+  i_fournNom.addEventListener("input",()=>{if(!respTouched)renderExtra();});
+  prodBox.innerHTML=prodCard(f);
+  prodBox.querySelectorAll('input[name="prod"]').forEach(r=>r.onchange=()=>{prodIdx=+r.value;fillFromFiche();});
+  renderExtra();
+}
+async function doLookup(){
+  const v=i_lookup.value.trim();if(!num(v)){lookupMsg.className="msg err";lookupMsg.textContent="Saisissez un numéro de commande, par exemple 7389.";return;}
+  lookupBtn.disabled=true;lookupBtn.textContent="Recherche…";lookupMsg.className="msg";lookupMsg.textContent="Lecture de la commande dans Shopify…";
+  try{
+    const {data,error}=await sb.functions.invoke("sav",{body:{action:"lookup",orderName:v}});
+    if(error)throw error;if(!data||!data.ok)throw new Error((data&&data.error)||"Réponse vide");
+    if(!data.found){fiche=null;prodBox.innerHTML="";lookupMsg.className="msg err";lookupMsg.textContent="Commande introuvable dans Shopify (plus de 60 jours ou numéro erroné) : saisissez les informations à la main ci-dessous.";return;}
+    fiche=data.fiche;prodIdx=0;
+    const dup=L.filter(l=>num(l.orderName)===num(fiche.orderName)&&phase(l)!=="done");
+    const found=["marketplace","fournNom","refFournisseur","tracking"].filter(k=>fiche[k]).length+((fiche.produits||[])[0]?.prixAchat!=null?1:0);
+    lookupMsg.className="msg";lookupMsg.innerHTML=`Commande ${E(fiche.orderName)}${fiche.dateCommande?` du ${fD(fiche.dateCommande)}`:""} trouvée : informations remplies ci-dessous (modifiables).`+(dup.length?` <b style="color:#8A5A0B">Attention : ${dup.length} SAV déjà actif(s) pour cette commande (${E(dup.map(d=>d.motif||"").join(", "))}).</b>`:"")+(found<5?` Complétez les champs vides si besoin.`:"");
+    fillFromFiche();i_description.focus();
+  }catch(e){lookupMsg.className="msg err";lookupMsg.textContent="Lecture impossible : "+(e.message||e)+". Saisissez les informations à la main ci-dessous.";fiche=null;}
+  finally{lookupBtn.disabled=false;lookupBtn.textContent="Rechercher";}
+}
+async function saveDeclare(){
+  const g=k=>{const el=document.getElementById("i_"+k);return el?el.value.trim():"";};
+  const desc=g("description");
+  if(!pickCat){const r=classify(desc);if(r){pickCat=r.cat;pickMotif=r.motif;}}
+  if(!pickCat){alert("Décrivez le problème ou choisissez une catégorie.");return;}
+  const orderIn=g("lookup"),info=readInfo(g);
+  if(!orderIn&&!info.refFournisseur&&!info.tracking){alert("Indiquez au moins un n° de commande, une réf. fournisseur ou un n° de suivi.");return;}
+  const user=await me(),now=new Date().toISOString(),f=fiche||{};
+  const st="a_traiter";
+  const l={id:Math.floor(Math.random()*2e9)+1,source:"manuel",
+    orderName:f.orderName||(orderIn?(orderIn.startsWith("#")?orderIn:"#"+num(orderIn)):""),orderId:f.orderId||"",orderAdminUrl:f.orderAdminUrl||"",dateCommande:f.dateCommande||"",
+    ...info,fournId:(f.fournNom&&f.fournNom===info.fournNom)?(f.fournId??null):null,
+    trackingRetour:g("trackingRetour"),transporteurRetour:carrierOf(g("trackingRetour"),""),
+    categorie:pickCat,motif:pickMotif||CATM[pickCat].motifs[0],description:desc,echange:pickCat==="erreur"?g("echange"):"",
+    responsable:g("responsable")||defaultResp(pickCat,info.fournNom),statut:st,resultat:"",dateOuverture:now.slice(0,10),montantRecupere:null,commentaires:"",
+    historique:[{d:now,u:user,t:`SAV déclaré : ${CATM[pickCat].l} · ${pickMotif}`+(desc?` — ${desc}`:"")}],createdAt:now,updatedAt:now,updatedBy:user};
+  mSave.disabled=true;
+  try{if(await write(l)){document.getElementById("ovL").classList.remove("show");F.ph="actifs";F.cat="";saveF();render();toast(`SAV déclaré : ${CATM[pickCat].l}`);}}finally{mSave.disabled=false;}
+}
+
+/* ---------- modifier ---------- */
+function openEdit(id){
+  const l=L.find(x=>x.id==id);if(!l)return;
+  cur={...l,_loadedUpdatedAt:l.updatedAt||""};curSt=l.statut||"a_traiter";curHist=[...(l.historique||[])];pickCat=l.categorie||"autre";pickMotif=l.motif||"";
+  const done=STM[curSt].ph==="done";
+  mTitle.textContent=`${l.orderName||"SAV"} — ${l.motif||CATM[pickCat].l}`;mSave.textContent="Enregistrer";
+  mBody.innerHTML=`
+    ${done?`<div class="note green">Traité le ${fD(l.dateTraitement||l.updatedAt)}${l.resultat?` · ${E(l.resultat)}`:""}${l.montantRecupere?` · ${eur(l.montantRecupere)} récupérés`:""}. <button class="btn" type="button" id="reopenBtn" style="padding:3px 9px;margin-left:8px">Rouvrir</button></div>`:""}
+    ${l.alerte&&!done?`<div class="note amber">⚠ ${E(l.alerte)} <button class="btn" type="button" id="alertOk" style="padding:3px 9px;margin-left:8px">Vu</button></div>`:""}
+    ${l.source==="auto"&&l.description?`<div class="note">Créé automatiquement : ${E(l.description)}</div>`:""}
+    ${done?"":`<div class="steph" style="margin-top:0"><span>●</span>Avancement</div><div class="steps" id="steps"></div><div class="msg" id="stepHint" style="margin-top:-6px"></div>`}
+    <div class="steph"><span>●</span>Problème</div>
+    <div class="catpick" id="catPick"></div><div class="motifs" id="motifPick"></div>
+    ${fld("description","Description",l.description||"",{area:1,full:1})}
+    ${fld("responsable","Qui doit régler le problème ?",l.responsable||"",{sel:Object.entries(RESP)})}
+    ${fld("echange","Échange",l.echange||"",{sel:ECHANGE.map(x=>[x,x||"—"])})}
+    <div class="steph"><span>●</span>Commande et produit</div>
+    ${fld("orderName","N° de commande",l.orderName,{mono:1,full:1})}
+    ${infoFields(l)}
+    ${fld("trackingRetour","N° de suivi du retour",l.trackingRetour||"",{mono:1})}${fld("montantRecupere","Montant récupéré (€)",l.montantRecupere??"",{type:"number"})}
+    <div class="steph"><span>●</span>Historique</div>
+    <div class="fld full" style="flex-direction:row;gap:8px"><input id="i_note" placeholder="Ajouter une note (ex. déclaré à Turum par mail, avoir n°…)" style="flex:1"><button class="btn" type="button" id="noteBtn">Ajouter</button></div>
+    <ul class="log" id="log"></ul>${lists()}`;
+  mLeft.innerHTML=`<button class="btn r" type="button" id="delBtn">Supprimer</button>${l.orderAdminUrl?`<a class="btn" href="${E(l.orderAdminUrl)}" target="_blank" rel="noopener">Ouvrir dans Shopify</a>`:""}${done?"":`<button class="btn ok" type="button" id="doneBtn">Marquer comme traité ✓</button>`}`;
+  document.getElementById("ovL").classList.add("show");
+  catTouched=true;renderPick();if(!done)renderSteps();renderLog();
+  noteBtn.onclick=()=>{const t=i_note.value.trim();if(!t)return;curHist.push({d:new Date().toISOString(),u:USER||"Équipe",t});i_note.value="";renderLog();};
+  i_note.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();noteBtn.click();}});
+  const ao=document.getElementById("alertOk");if(ao)ao.onclick=()=>{cur.alerte="";ao.parentElement.remove();};
+  const ro=document.getElementById("reopenBtn");if(ro)ro.onclick=()=>{curSt="en_cours";cur.resultat="";cur.dateTraitement="";saveEdit("SAV rouvert");};
+  const db_=document.getElementById("doneBtn");if(db_)db_.onclick=()=>{document.getElementById("ovL").classList.remove("show");openDone(l.id);};
+  delBtn.onclick=delCur;
+}
+function renderSteps(){const el=document.getElementById("steps");if(!el)return;el.innerHTML=ST.filter(s=>s.ph!=="done").map(s=>`<button type="button" data-s="${s.id}" style="${curSt===s.id?`background:${s.bg};color:${s.fg};border-color:${s.fg}`:""}">${E(s.l)}</button>`).join("");stepHint.textContent=STM[curSt]?.h||"";
+  el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{curSt=b.dataset.s;renderSteps();});}
+function renderLog(){log.innerHTML=curHist.length?[...curHist].reverse().map(h=>`<li><small>${fDT(h.d)} · ${E(h.u||"")}</small>${E(h.t)}</li>`).join(""):'<li class="muted">Aucun événement</li>';}
+async function saveEdit(extraMsg){
+  const g=k=>{const el=document.getElementById("i_"+k);return el?el.value.trim():undefined;};
+  const pn=k=>{const v=g(k);if(v===undefined||v==="")return null;const n=parseFloat(v.replace(",","."));return isNaN(n)?null:Math.round(n*100)/100;};
+  const user=await me(),now=new Date().toISOString();
+  const on=g("orderName")||"",info=readInfo(g);
+  const l={...cur,...info,orderName:on&&/^\d+$/.test(on)?"#"+on:on,
+    trackingRetour:g("trackingRetour"),transporteurRetour:carrierOf(g("trackingRetour"),""),montantRecupere:pn("montantRecupere"),
+    description:g("description"),responsable:g("responsable"),echange:g("echange"),categorie:pickCat,motif:pickMotif,statut:curSt,updatedAt:now,updatedBy:user};
+  if(l.fournNom!==cur.fournNom)l.fournId=null;
+  const h=[...curHist];
+  if(typeof extraMsg==="string")h.push({d:now,u:user,t:extraMsg});
+  else if(cur.statut!==curSt)h.push({d:now,u:user,t:`Avancement : ${STM[cur.statut]?.l||cur.statut} → ${STM[curSt].l}`});
+  if(cur.categorie!==pickCat||cur.motif!==pickMotif)h.push({d:now,u:user,t:`Problème : ${CATM[pickCat].l} · ${pickMotif}`});
+  if(cur.echange!==l.echange&&l.echange)h.push({d:now,u:user,t:`Échange : ${l.echange}`});
+  const nt=g("note");if(nt)h.push({d:now,u:user,t:nt});
+  l.historique=h.slice(-80);
+  mSave.disabled=true;try{if(await write(l)){document.getElementById("ovL").classList.remove("show");render();toast(typeof extraMsg==="string"?extraMsg:"SAV enregistré");}}finally{mSave.disabled=false;}
+}
+async function delCur(){
+  if(!cur||!confirm(`Supprimer définitivement le SAV ${cur.orderName||""} (${cur.motif||""}) ?\n\nPour un dossier réglé, utilisez plutôt « Marquer comme traité » : il sort de la liste mais reste dans l'historique.`))return;
+  const {error}=await sb.from("litiges").delete().eq("id",cur.id);if(error){alert("Suppression impossible : "+error.message);return;}
+  L=L.filter(x=>x.id!==cur.id);document.getElementById("ovL").classList.remove("show");render();toast("SAV supprimé");
+}
+
+/* ---------- marquer comme traité ---------- */
+function openDone(id){
+  const l=L.find(x=>x.id==id);if(!l)return;doneId=id;doneRes=l.categorie==="erreur"?"Échange effectué":"";
+  dTitle.textContent=`Marquer comme traité — ${l.orderName||l.motif||"SAV"}`;
+  dMontant.value=l.montantRecupere??"";dNote.value="";
+  renderDoneRes(l);document.getElementById("ovDone").classList.add("show");
+}
+function renderDoneRes(l){dRes.innerHTML=RESULTATS.map(r=>`<button type="button" data-r="${E(r)}" class="${doneRes===r?"on":""}">${E(r)}</button>`).join("");
+  dRes.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{doneRes=b.dataset.r;if(doneRes.startsWith("Rembours")&&!dMontant.value&&l.prixAchat!=null)dMontant.value=l.prixAchat;renderDoneRes(l);});}
+async function saveDone(){
+  const l=L.find(x=>x.id==doneId);if(!l)return;if(!doneRes){alert("Choisissez comment ce SAV s'est terminé.");return;}
+  const user=await me(),now=new Date().toISOString();const m=parseFloat(String(dMontant.value).replace(",","."));
+  const n={...l,_loadedUpdatedAt:l.updatedAt||"",statut:"traite",resultat:doneRes,dateTraitement:now.slice(0,10),montantRecupere:isNaN(m)?l.montantRecupere??null:Math.round(m*100)/100,alerte:"",updatedAt:now,updatedBy:user,
+    historique:[...(l.historique||[]),{d:now,u:user,t:`Traité : ${doneRes}`+(isNaN(m)?"":` · ${eur(m)} récupérés`)+(dNote.value.trim()?` — ${dNote.value.trim()}`:"")}].slice(-80)};
+  dSave.disabled=true;try{if(await write(n)){document.getElementById("ovDone").classList.remove("show");render();toast("SAV traité : retiré des SAV actifs");}}finally{dSave.disabled=false;}
+}
+
+/* ---------- réglages / contrôle ---------- */
+function openCfg(){cJours.value=CFG.joursNonExpedie||3;const s=CFG.lastSync;cInfo.innerHTML=s?`Dernier contrôle : ${fDT(s.le)} (${E(s.par||"")}), ${s.verifiees} commande(s) en retard, ${s.crees} SAV créé(s). Le contrôle tourne automatiquement chaque matin à 6 h.`:"Le contrôle tourne automatiquement chaque matin à 6 h, une fois la fonction « sav » installée.";document.getElementById("ovCfg").classList.add("show");}
+async function saveCfg(){const n={...CFG,joursNonExpedie:Math.min(30,Math.max(1,parseInt(cJours.value,10)||3))};const {error}=await sb.from("sav_config").upsert({id:1,data:n});if(error){alert("Réglage non enregistré : "+error.message);return;}CFG=n;document.getElementById("ovCfg").classList.remove("show");render();toast("Réglage enregistré");}
+async function runSync(){cRun.disabled=true;cRun.textContent="Contrôle en cours…";
+  try{const {data,error}=await sb.functions.invoke("sav",{body:{action:"sync"}});if(error)throw error;if(!data||!data.ok)throw new Error((data&&data.error)||"Réponse vide");await load();render();openCfg();toast(`${data.crees} nouveau(x) SAV · ${data.verifiees} commande(s) en retard`);}
+  catch(e){alert("Contrôle impossible : "+(e.message||e));}finally{cRun.disabled=false;cRun.textContent="Lancer le contrôle maintenant";}}
+
+/* ---------- branchements ---------- */
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>document.getElementById(b.dataset.close).classList.remove("show")));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".ov.show").forEach(o=>o.classList.remove("show"));});
+declareBtn.onclick=()=>openDeclare("");
+mSave.onclick=()=>cur?saveEdit():saveDeclare();
+dSave.onclick=saveDone;
+cats.onclick=e=>{const b=e.target.closest("[data-cat]");if(!b)return;F.cat=b.dataset.cat;saveF();render();};
+phChips.onclick=e=>{const b=e.target.closest("[data-ph]");if(!b)return;F.ph=b.dataset.ph;saveF();render();};
+fQ.oninput=()=>{F.q=fQ.value;render();};
+fFour.onchange=()=>{F.four=fFour.value;saveF();render();};fMp.onchange=()=>{F.mp=fMp.value;saveF();render();};
+fClear.onclick=()=>{Object.assign(F,{cat:"",ph:"actifs",q:"",four:"",mp:""});fQ.value="";saveF();render();};
+rows.onclick=e=>{const d=e.target.closest("[data-done]");if(d){openDone(+d.dataset.done);return;}if(e.target.closest("[data-stop]"))return;const tr=e.target.closest("tr[data-id]");if(tr)openEdit(+tr.dataset.id);};
+cSave.onclick=saveCfg;cRun.onclick=runSync;
+
+/* ---------- connexion (mêmes comptes que l'ERP) ---------- */
+async function start(session){
+  loginScreen.classList.add("hide");app.classList.remove("hide");who.textContent=session.user.email||"";USER=session.user.email||"Équipe";
+  await load();render();
+  setInterval(async()=>{if(document.hidden||document.querySelector(".ov.show"))return;if(await load())render();},300000);
+}
+loginForm.addEventListener("submit",async e=>{e.preventDefault();loginErr.textContent="";loginBtn.disabled=true;loginBtn.textContent="Connexion…";
+  const {data,error}=await sb.auth.signInWithPassword({email:loginEmail.value.trim(),password:loginPass.value});loginBtn.disabled=false;loginBtn.textContent="Se connecter";
+  if(error){loginErr.textContent="Connexion refusée : e-mail ou mot de passe incorrect.";return;}start(data.session);});
+logoutBtn.onclick=async()=>{await sb.auth.signOut();location.reload();};
+(async()=>{try{const {data:{session}}=await sb.auth.getSession();if(session)start(session);else loginScreen.classList.remove("hide");}catch(e){loginScreen.classList.remove("hide");}})();
+</script>
+</body>
+</html>
