@@ -387,8 +387,8 @@ function openDeclare(prefillOrder){
   mTitle.textContent="Déclarer un SAV";mSave.textContent="Déclarer le SAV";mLeft.innerHTML="";
   mBody.innerHTML=`
     <div class="steph"><span>1</span>La commande</div>
-    <div class="fld full"><label for="i_lookup">Référence Shopify de la commande</label><div style="display:flex;gap:8px"><input id="i_lookup" placeholder="7389" value="${E(prefillOrder||"")}" inputmode="numeric" style="flex:1;font-size:15px"><button class="btn v" type="button" id="lookupBtn">Rechercher</button></div></div>
-    <div class="msg" id="lookupMsg">Les informations se remplissent depuis Shopify et FlowStock. Vous pouvez toutes les modifier ou les saisir à la main.</div>
+    <div class="fld full"><label for="i_lookup">N° de commande Shopify ou SKU FlowStock</label><div style="display:flex;gap:8px"><input id="i_lookup" placeholder="7389 ou DD1503-124" value="${E(prefillOrder||"")}" autocomplete="off" style="flex:1;font-size:15px"><button class="btn v" type="button" id="lookupBtn">Rechercher</button></div></div>
+    <div class="msg" id="lookupMsg">Avec le n° de commande, les informations se remplissent toutes seules. Avec un SKU, choisissez d'abord la commande dans la liste.</div>
     <div id="prodBox" style="display:contents"></div>
     <div id="infoBox" style="display:contents">${infoFields({})}</div>
     <div class="steph off" id="h2"><span>2</span>Le problème</div>
@@ -437,9 +437,13 @@ function fillFromFiche(){
   prodBox.querySelectorAll('input[name="prod"]').forEach(r=>r.onchange=()=>{prodIdx=+r.value;fillFromFiche();});
   renderExtra();
 }
+/* N° de commande (chiffres, éventuellement avec #) ou SKU (lettres, tiret, ou long code) */
+const isOrderRef=v=>/^#?\s*\d{1,7}$/.test(v.trim());
 async function doLookup(){
-  const v=i_lookup.value.trim();if(!num(v)){lookupMsg.className="msg err";lookupMsg.textContent="Saisissez un numéro de commande, par exemple 7389.";return;}
-  lookupBtn.disabled=true;lookupBtn.textContent="Recherche…";lookupMsg.className="msg";lookupMsg.textContent="Lecture de la commande dans Shopify…";
+  const v=i_lookup.value.trim();
+  if(!v){lookupMsg.className="msg err";lookupMsg.textContent="Saisissez un numéro de commande (ex. 7389) ou un SKU (ex. DD1503-124).";return;}
+  if(!isOrderRef(v))return doSkuSearch(v);
+  lookupBtn.disabled=true;lookupBtn.textContent="Recherche…";lookupMsg.className="msg";lookupMsg.textContent="Lecture de la commande dans Shopify…";prodBox.innerHTML="";
   try{
     const {data,error}=await sb.functions.invoke("sav",{body:{action:"lookup",orderName:v}});
     if(error)throw error;if(!data||!data.ok)throw new Error((data&&data.error)||"Réponse vide");
@@ -450,6 +454,20 @@ async function doLookup(){
     lookupMsg.className="msg";lookupMsg.innerHTML=`Commande ${E(fiche.orderName)}${fiche.dateCommande?` du ${fD(fiche.dateCommande)}`:""} trouvée : informations remplies ci-dessous (modifiables).`+(dup.length?` <b style="color:#8A5A0B">Attention : ${dup.length} SAV déjà actif(s) pour cette commande (${E(dup.map(d=>d.motif||"").join(", "))}).</b>`:"")+(found<5?` Complétez les champs vides si besoin.`:"");
     fillFromFiche();i_description.focus();
   }catch(e){lookupMsg.className="msg err";lookupMsg.textContent="Lecture impossible : "+(e.message||e)+". Saisissez les informations à la main ci-dessous.";fiche=null;}
+  finally{lookupBtn.disabled=false;lookupBtn.textContent="Rechercher";}
+}
+async function doSkuSearch(v){
+  lookupBtn.disabled=true;lookupBtn.textContent="Recherche…";lookupMsg.className="msg";lookupMsg.textContent=`Recherche des commandes contenant le SKU « ${v} »…`;prodBox.innerHTML="";
+  try{
+    const {data,error}=await sb.functions.invoke("sav",{body:{action:"search_sku",sku:v}});
+    if(error)throw error;if(!data||!data.ok)throw new Error((data&&data.error)||"Réponse vide");
+    const C=data.commandes||[];
+    if(!C.length){lookupMsg.className="msg err";lookupMsg.textContent=`Aucune commande trouvée avec le SKU « ${v} ». Vérifiez le SKU ou saisissez le n° de commande.`;return;}
+    lookupMsg.className="msg";lookupMsg.textContent=`${C.length} commande(s) contiennent ce SKU, de la plus récente à la plus ancienne : choisissez la bonne.`;
+    const exp={UNFULFILLED:"non expédiée",FULFILLED:"expédiée",PARTIALLY_FULFILLED:"partiellement expédiée"};
+    prodBox.innerHTML=`<div class="prods">${C.map(c=>`<button type="button" class="prod" data-pick="${E(c.orderName)}" style="text-align:left;font:inherit"><span style="flex:1"><b>${E(c.orderName)}</b> <span class="s2" style="display:inline">du ${fD(c.createdAt)}${c.cancelled?" · annulée":exp[c.expedition]?" · "+exp[c.expedition]:""}</span><div class="s2">${E([c.marketplace,c.refMarketplace].filter(Boolean).join(" · "))}${c.fournNom?" · "+E(c.fournNom):""}</div><div class="s2"><span class="sku">${E(c.sku)}</span> · ${E(c.produit)}${c.taille?" · T. "+E(c.taille):""}</div></span><b style="color:var(--violet)">Choisir</b></button>`).join("")}</div>`;
+    prodBox.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{i_lookup.value=b.dataset.pick;doLookup();});
+  }catch(e){lookupMsg.className="msg err";lookupMsg.textContent="Recherche impossible : "+(e.message||e)+".";}
   finally{lookupBtn.disabled=false;lookupBtn.textContent="Rechercher";}
 }
 async function saveDeclare(){
@@ -489,7 +507,9 @@ function openEdit(id){
     ${fld("responsable","Qui doit régler le problème ?",l.responsable||"",{sel:Object.entries(RESP)})}
     ${fld("echange","Échange",l.echange||"",{sel:ECHANGE.map(x=>[x,x||"—"])})}
     <div class="steph"><span>●</span>Commande et produit</div>
-    ${fld("orderName","N° de commande",l.orderName,{mono:1,full:1})}
+    <div class="fld full"><label for="i_orderName">N° de commande ou SKU FlowStock</label><div style="display:flex;gap:8px"><input id="i_orderName" value="${E(l.orderName||"")}" placeholder="7389 ou DD1503-124" autocomplete="off" style="flex:1;font-family:var(--f-mono)"><button class="btn v" type="button" id="eLookupBtn">Rechercher</button></div></div>
+    <div class="msg" id="eLookupMsg">Pour rattacher ou corriger la commande : tapez un n° de commande ou un SKU, puis « Rechercher ». La commande et le produit se mettent à jour.</div>
+    <div id="ePick" style="display:contents"></div>
     ${infoFields(l)}
     ${fld("trackingRetour","N° de suivi du retour",l.trackingRetour||"",{mono:1})}${fld("montantRecupere","Montant récupéré (€)",l.montantRecupere??"",{type:"number"})}
     <div class="steph"><span>●</span>Historique</div>
@@ -504,15 +524,52 @@ function openEdit(id){
   const ro=document.getElementById("reopenBtn");if(ro)ro.onclick=()=>{curSt="en_cours";cur.resultat="";cur.dateTraitement="";saveEdit("SAV rouvert");};
   const db_=document.getElementById("doneBtn");if(db_)db_.onclick=()=>{document.getElementById("ovL").classList.remove("show");openDone(l.id);};
   delBtn.onclick=delCur;
+  eLookupBtn.onclick=editLookup;i_orderName.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();editLookup();}});
 }
 function renderSteps(){const el=document.getElementById("steps");if(!el)return;el.innerHTML=ST.filter(s=>s.ph!=="done").map(s=>`<button type="button" data-s="${s.id}" style="${curSt===s.id?`background:${s.bg};color:${s.fg};border-color:${s.fg}`:""}">${E(s.l)}</button>`).join("");stepHint.textContent=STM[curSt]?.h||"";
   el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{curSt=b.dataset.s;renderSteps();});}
 function renderLog(){log.innerHTML=curHist.length?[...curHist].reverse().map(h=>`<li><small>${fDT(h.d)} · ${E(h.u||"")}</small>${E(h.t)}</li>`).join(""):'<li class="muted">Aucun événement</li>';}
+/* Fiche d'un SAV : rattacher / corriger la commande par n° ou par SKU */
+function setVal(k,v){const el=document.getElementById("i_"+k);if(el&&v!=null&&v!=="")el.value=v;}
+async function editLookup(){
+  const v=i_orderName.value.trim();if(!v){eLookupMsg.className="msg err";eLookupMsg.textContent="Saisissez un n° de commande ou un SKU.";return;}
+  eLookupBtn.disabled=true;eLookupBtn.textContent="Recherche…";eLookupMsg.className="msg";ePick.innerHTML="";
+  try{
+    if(!isOrderRef(v)){
+      eLookupMsg.textContent=`Recherche des commandes contenant le SKU « ${v} »…`;
+      const {data,error}=await sb.functions.invoke("sav",{body:{action:"search_sku",sku:v}});
+      if(error)throw error;if(!data||!data.ok)throw new Error((data&&data.error)||"Réponse vide");
+      const C=data.commandes||[];
+      if(!C.length){eLookupMsg.className="msg err";eLookupMsg.textContent=`Aucune commande trouvée avec le SKU « ${v} ».`;return;}
+      eLookupMsg.textContent=`${C.length} commande(s) contiennent ce SKU : choisissez la bonne.`;
+      ePick.innerHTML=`<div class="prods">${C.map(c=>`<button type="button" class="prod" data-pick="${E(c.orderName)}" style="text-align:left;font:inherit"><span style="flex:1"><b>${E(c.orderName)}</b> <span class="s2" style="display:inline">du ${fD(c.createdAt)}</span><div class="s2">${E([c.marketplace,c.refMarketplace].filter(Boolean).join(" · "))}${c.fournNom?" · "+E(c.fournNom):""}</div><div class="s2"><span class="sku">${E(c.sku)}</span> · ${E(c.produit)}${c.taille?" · T. "+E(c.taille):""}</div></span><b style="color:var(--violet)">Choisir</b></button>`).join("")}</div>`;
+      ePick.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{i_orderName.value=b.dataset.pick;editLookup();});
+      return;
+    }
+    eLookupMsg.textContent="Lecture de la commande dans Shopify…";
+    const {data,error}=await sb.functions.invoke("sav",{body:{action:"lookup",orderName:v}});
+    if(error)throw error;if(!data||!data.ok)throw new Error((data&&data.error)||"Réponse vide");
+    if(!data.found){eLookupMsg.className="msg err";eLookupMsg.textContent="Commande introuvable dans Shopify : complétez les champs à la main.";return;}
+    const f=data.fiche,P=f.produits||[];
+    const apply=i=>{const p=P[i]||{};i_orderName.value=f.orderName;
+      ["marketplace","refMarketplace","fournNom","refFournisseur","tracking"].forEach(k=>setVal(k,f[k]));
+      setVal("transporteur",f.transporteur);setVal("produit",p.produit);setVal("sku",p.sku);setVal("taille",p.taille);setVal("prixAchat",p.prixAchat);
+      cur.orderId=f.orderId||cur.orderId;cur.orderAdminUrl=f.orderAdminUrl||cur.orderAdminUrl;cur.dateCommande=f.dateCommande||cur.dateCommande;if(f.fournId!=null)cur.fournId=f.fournId;
+      eLookupMsg.className="msg";eLookupMsg.innerHTML=`Commande ${E(f.orderName)}${f.dateCommande?` du ${fD(f.dateCommande)}`:""} : commande et produit mis à jour ci-dessous. Cliquez sur « Enregistrer » pour garder ces changements.`;};
+    if(P.length>1){
+      ePick.innerHTML=`<div class="prods"><div class="s2" style="margin:0">Cette commande contient ${P.length} articles : choisissez celui qui pose problème.</div>${P.map((p,i)=>`<button type="button" class="prod" data-pi="${i}" style="text-align:left;font:inherit"><span style="flex:1"><b>${E(p.produit)}</b><div class="s2"><span class="sku">${E(p.sku)}</span>${p.taille?" · T. "+E(p.taille):""}</div></span><b>${eur(p.prixAchat)}</b></button>`).join("")}</div>`;
+      ePick.querySelectorAll("[data-pi]").forEach(b=>b.onclick=()=>{apply(+b.dataset.pi);ePick.innerHTML="";});
+      eLookupMsg.textContent="Choisissez l'article concerné.";
+    }else apply(0);
+  }catch(e){eLookupMsg.className="msg err";eLookupMsg.textContent="Recherche impossible : "+(e.message||e)+".";}
+  finally{eLookupBtn.disabled=false;eLookupBtn.textContent="Rechercher";}
+}
 async function saveEdit(extraMsg){
   const g=k=>{const el=document.getElementById("i_"+k);return el?el.value.trim():undefined;};
   const pn=k=>{const v=g(k);if(v===undefined||v==="")return null;const n=parseFloat(v.replace(",","."));return isNaN(n)?null:Math.round(n*100)/100;};
   const user=await me(),now=new Date().toISOString();
-  const on=g("orderName")||"",info=readInfo(g);
+  let on=g("orderName")||"";const info=readInfo(g);
+  if(on&&!isOrderRef(on)&&on!==cur.orderName)on=cur.orderName||""; // un SKU tapé sans choisir de commande ne remplace pas le n° de commande
   const l={...cur,...info,orderName:on&&/^\d+$/.test(on)?"#"+on:on,
     trackingRetour:g("trackingRetour"),transporteurRetour:carrierOf(g("trackingRetour"),""),montantRecupere:pn("montantRecupere"),
     description:g("description"),responsable:g("responsable"),echange:g("echange"),categorie:pickCat,motif:pickMotif,statut:curSt,updatedAt:now,updatedBy:user};
